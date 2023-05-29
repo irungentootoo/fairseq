@@ -34,7 +34,7 @@ if __name__ == "__main__":
     if args.remove_under_k > 0:
         path = path.replace(".km", f"-k{args.remove_under_k}.km")
     if args.dedup:
-        path = path.replace(".km", f"-deduped.km")
+        path = path.replace(".km", "-deduped.km")
 
     open(path, "w").writelines(out)
     print(f"written to {path}")

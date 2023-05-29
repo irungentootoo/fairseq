@@ -23,8 +23,7 @@ def sequencify_utterance(utterance):
     utterance = utterance.upper()
     utterance = utterance.replace(' ', '|') + '|'
     utterance = list(utterance)
-    utterance = ' '.join(utterance)
-    return utterance
+    return ' '.join(utterance)
 
 
 def generate_fairseq_manifests(manifest, output_path, audio_root=None):
@@ -37,7 +36,7 @@ def generate_fairseq_manifests(manifest, output_path, audio_root=None):
         for (idx, line) in enumerate(i):
             if idx == 0: keys = line.strip().split('\t')
             else:
-                data = { k: v for (k, v) in zip(keys, line.split('\t'))}
+                data = dict(zip(keys, line.split('\t')))
                 parses.append(get_insl_frame(data['decoupled_normalized_seqlogical']))
                 utterances.append(sequencify_utterance(data['normalized_utterance']))
                 filepaths.append(data['file_id'])
@@ -68,7 +67,7 @@ def main(args):
     output_root = Path(args.output)
 
     for split in splits:
-        stop_manifest_path = root / 'manifests' / (split + '.tsv')
+        stop_manifest_path = root / 'manifests' / f'{split}.tsv'
         output_path = output_root / (split)
 
         generate_fairseq_manifests(stop_manifest_path, output_path, root)

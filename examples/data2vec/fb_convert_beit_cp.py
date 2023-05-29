@@ -155,7 +155,7 @@ def main():
             strict=True,
         )
     else:
-        raise Exception("unsupported type " + args.type)
+        raise Exception(f"unsupported type {args.type}")
 
     print(state["cfg"], state.keys())
     torch.save(state, args.output)

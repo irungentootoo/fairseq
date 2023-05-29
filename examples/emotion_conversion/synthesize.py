@@ -15,7 +15,9 @@ import amfm_decompy.basic_tools as basic
 import amfm_decompy.pYAAPT as pYAAPT
 
 dir_path = os.path.dirname(__file__)
-resynth_path = os.path.dirname(os.path.abspath(__file__)) + "/speech-resynthesis"
+resynth_path = (
+    f"{os.path.dirname(os.path.abspath(__file__))}/speech-resynthesis"
+)
 sys.path.append(resynth_path)
 
 from models import CodeGenerator
@@ -63,7 +65,7 @@ def parse_generation_file(fname):
         elif l[0] == 'S':
             sid, utt = l[2:].split('\t')
             sid = int(sid)
-            utt = [x for x in utt.split()]
+            utt = list(utt.split())
             if sid in results:
                 results[sid]['S'] = utt
             else:
@@ -77,7 +79,7 @@ def parse_generation_file(fname):
             else:
                 results[sid] = {'T': utt}
 
-    for d, result in results.items():
+    for result in results.values():
         if 'H' not in result:
             result['H'] = result['S']
 
@@ -115,8 +117,7 @@ def get_code_to_fname(manifest, tokens):
 
 
 def code_to_str(s):
-    k = ' '.join([str(x) for x in s])
-    return k
+    return ' '.join([str(x) for x in s])
 
 
 def get_praat_f0(audio, rate=16000, interp=False):
@@ -134,8 +135,7 @@ def get_praat_f0(audio, rate=16000, interp=False):
         else:
             f0s += [pitch.samp_values[None, None, :]]
 
-    f0 = np.vstack(f0s)
-    return f0
+    return np.vstack(f0s)
 
 
 def generate_from_code(generator, h, code, spkr=None, f0=None, gst=None, device="cpu"):
@@ -188,8 +188,7 @@ def synth(argv, interactive=False):
         config_file = os.path.join(a.checkpoint_file, 'config.json')
     else:
         config_file = os.path.join(os.path.split(a.checkpoint_file)[0], 'config.json')
-    with open(config_file) as f:
-        data = f.read()
+    data = Path(config_file).read_text()
     json_config = json.loads(data)
     h = AttrDict(json_config)
 
@@ -226,7 +225,10 @@ def synth(argv, interactive=False):
     orig_tsv = open(a.orig_tsv, 'r').readlines()
     orig_tsv_root, orig_tsv = orig_tsv[0].strip(), orig_tsv[1:]
     orig_km = open(a.orig_km, 'r').readlines()
-    fname_to_idx = {orig_tsv_root + "/" + line.split("\t")[0]: i for i, line in enumerate(orig_tsv)}
+    fname_to_idx = {
+        f"{orig_tsv_root}/" + line.split("\t")[0]: i
+        for i, line in enumerate(orig_tsv)
+    }
 
     outdir = a.outdir
     outdir.mkdir(parents=True, exist_ok=True)
@@ -295,7 +297,7 @@ def synth(argv, interactive=False):
 
         if a.orig_filename:
             path = src_code_to_fname[code_to_str(result['S'])]
-            sid = str(sid) + "__" + Path(path).stem
+            sid = f"{str(sid)}__{Path(path).stem}"
         shutil.copy(src_code_to_fname[code_to_str(result['S'])], outdir / '0-source' / f'{sid}.wav')
 
         audio = generate_from_code(generator, h, src_tokens, spkr=src_spkr, f0=src_f0, gst=src_style, device=a.device)

@@ -23,7 +23,7 @@ root, tsv_lines = tsv_lines[0].strip(), tsv_lines[1:]
 
 def extract_f0(tsv_line):
     wav_path, _ = tsv_line.split("\t")
-    wav_path = root.strip() + "/" + wav_path
+    wav_path = f"{root.strip()}/{wav_path}"
     sr, wav = read(wav_path)
     wav = wav / MAX_WAV_VALUE
     wav = normalize(wav) * 0.95

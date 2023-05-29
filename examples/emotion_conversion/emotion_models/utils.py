@@ -74,5 +74,4 @@ class Accuracy:
         yhat = torch.cat(self.yhat)
         y = torch.cat(self.y)
         acc = torch.abs(yhat - y) <= tol
-        acc = acc.float().mean().item()
-        return acc
+        return acc.float().mean().item()

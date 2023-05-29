@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 dir_path = os.path.dirname(__file__)
-resynth_path = os.path.dirname(dir_path) + "/speech-resynthesis"
+resynth_path = f"{os.path.dirname(dir_path)}/speech-resynthesis"
 sys.path.append(resynth_path)
 from dataset import parse_speaker, parse_style
 from .utils import F0Stat
@@ -46,7 +46,7 @@ def quantize_f0(speaker_to_f0, nbins, normalize, log):
     bin_offset = []
     bin_size = 100 / nbins
     threshold = bin_size
-    for i in range(nbins - 1):
+    for _ in range(nbins - 1):
         index = (np.abs(cum_hist - threshold)).argmin()
         bin_offset.append(bin_x[index])
         threshold += bin_size
@@ -224,11 +224,7 @@ class CnnPredictor(nn.Module):
         x = torch.cat(feats, dim=-1)
 
         for i, conv in enumerate(self.conv_layer):
-            if i != 0:
-                x = conv(x) + x
-            else:
-                x = conv(x)
-
+            x = conv(x) + x if i != 0 else conv(x)
         x = self.proj(x)
         x = x.squeeze(-1)
 
@@ -334,7 +330,7 @@ class PitchDataset(Dataset):
 
     def _load_f0(self, tsv_line):
         tsv_line = tsv_line.split("\t")[0]
-        f0 = self.root + "/" + tsv_line.replace(".wav", ".yaapt.f0.npy")
+        f0 = f"{self.root}/" + tsv_line.replace(".wav", ".yaapt.f0.npy")
         f0 = np.load(f0)
         f0 = torch.FloatTensor(f0)
         return f0

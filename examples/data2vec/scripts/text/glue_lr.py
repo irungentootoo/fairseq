@@ -63,14 +63,14 @@ def get_tabular_stat_str(task_vals):
             param, run = match.groups()
             param_to_runs[param][run] = task_vals[task][subdir]
         params = sorted(param_to_runs, key=lambda x: float(x))
-        runs = sorted(set(run for runs in param_to_runs.values() for run in runs))
+        runs = sorted({run for runs in param_to_runs.values() for run in runs})
         msg += ("runs:" + "\t".join(runs) + "\n")
         msg += ("params:" + "\t".join(params) + "\n")
         for param in params:
             msg += "\t".join([str(param_to_runs[param].get(run, None)) for run in runs])
             msg += "\n"
-        # for subdir in sorted(task_vals[task].keys()):
-        #     msg += f"\t{subdir}\t{task_vals[task][subdir]}\n"
+            # for subdir in sorted(task_vals[task].keys()):
+            #     msg += f"\t{subdir}\t{task_vals[task][subdir]}\n"
     return msg
 
    

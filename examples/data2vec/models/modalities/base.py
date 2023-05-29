@@ -411,11 +411,7 @@ class ModalitySpecificEncoder(nn.Module):
         return x, mask_info
 
     def make_maskinfo(self, x, mask, shape=None):
-        if shape is None:
-            B, T, D = x.shape
-        else:
-            B, T, D = shape
-
+        B, T, D = x.shape if shape is None else shape
         mask = mask.to(torch.uint8)
         ids_shuffle = mask.argsort(dim=1)
         ids_restore = ids_shuffle.argsort(dim=1).unsqueeze(-1).expand(-1, -1, D)
@@ -432,13 +428,12 @@ class ModalitySpecificEncoder(nn.Module):
             ids_keep = ids_keep.unsqueeze(-1).expand(-1, -1, D)
             x_unmasked = torch.gather(x, dim=1, index=ids_keep)
 
-        mask_info = MaskInfo(
+        return MaskInfo(
             x_unmasked=x_unmasked,
             mask=mask,
             ids_restore=ids_restore,
             ids_keep=ids_keep,
         )
-        return mask_info
 
     def apply_mask(self, x, mask_info):
         cfg = self.modality_cfg
@@ -548,18 +543,13 @@ def get_alibi(
             ratio = start
             return [start * ratio**i for i in range(n)]
 
-        # In the paper, we only train models that have 2^a heads for some
-        # a. This function has some good properties that only occur when
-        # the input is a power of 2. To maintain that even when the number
-        # of heads is not a power of 2, we use this workaround.
         if math.log2(n).is_integer():
             return get_slopes_power_of_2(n)
-        else:
-            closest_power_of_2 = 2 ** math.floor(math.log2(n))
-            return (
-                get_slopes_power_of_2(closest_power_of_2)
-                + get_slopes(2 * closest_power_of_2)[0::2][: n - closest_power_of_2]
-            )
+        closest_power_of_2 = 2 ** math.floor(math.log2(n))
+        return (
+            get_slopes_power_of_2(closest_power_of_2)
+            + get_slopes(2 * closest_power_of_2)[::2][: n - closest_power_of_2]
+        )
 
     maxpos = max_positions
     attn_heads = attention_heads
@@ -639,8 +629,7 @@ def get_alibi_bias(
         alibi_biases[cache_key] = buffered
 
     b = buffered[:target_size, :time_steps, :time_steps]
-    b = b.view(batch_size, heads, time_steps, time_steps)
-    return b
+    return b.view(batch_size, heads, time_steps, time_steps)
 
 
 def _learned_alibi_bias(

@@ -282,7 +282,7 @@ class Data2VecMultiModel(BaseFairseqModel):
             torch.nn.init.xavier_uniform_(m.weight)
             if isinstance(m, nn.Linear) and m.bias is not None:
                 nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.LayerNorm) or isinstance(m, fn):
+        elif isinstance(m, (nn.LayerNorm, fn)):
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
             if m.weight is not None:
@@ -359,12 +359,12 @@ class Data2VecMultiModel(BaseFairseqModel):
         state = super().state_dict(destination, prefix, keep_vars)
 
         if self.ema is not None:
-            state[prefix + "_ema"] = self.ema.fp32_params
+            state[f"{prefix}_ema"] = self.ema.fp32_params
 
         return state
 
     def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs):
-        k = prefix + "_ema"
+        k = f"{prefix}_ema"
         if self.ema is not None:
             assert k in state_dict
             self.ema.restore(state_dict[k], True)
@@ -498,7 +498,7 @@ class Data2VecMultiModel(BaseFairseqModel):
             xs.append(dx)
             orig_x = x
 
-        assert len(xs) > 0
+        assert xs
 
         p = next(self.ema.model.parameters())
         device = x.device
@@ -675,7 +675,7 @@ class Data2VecMultiModel(BaseFairseqModel):
                         f"target var is {result[f'target_var{suffix}'].item()} < {self.cfg.min_target_var}, exiting ({mode})"
                     )
 
-                for k in result.keys():
+                for k in result:
                     if k.startswith("pred_var") and result[k] < self.cfg.min_pred_var:
                         logger.error(
                             f"{k} is {result[k].item()} < {self.cfg.min_pred_var}, exiting ({mode})"
@@ -714,9 +714,7 @@ class Data2VecMultiModel(BaseFairseqModel):
         else:
             scale = 1 / math.sqrt(x.size(-1))
 
-        reg_loss = loss * scale
-
-        return reg_loss
+        return loss * scale
 
     def make_targets(self, y, num_layers):
 
@@ -766,24 +764,23 @@ class Data2VecMultiModel(BaseFairseqModel):
     @staticmethod
     def compute_var(y):
         y = y.view(-1, y.size(-1))
-        if dist.is_initialized():
-            zc = torch.tensor(y.size(0)).cuda()
-            zs = y.sum(dim=0)
-            zss = (y**2).sum(dim=0)
-
-            dist.all_reduce(zc)
-            dist.all_reduce(zs)
-            dist.all_reduce(zss)
-
-            var = zss / (zc - 1) - (zs**2) / (zc * (zc - 1))
-            return torch.sqrt(var + 1e-6).mean()
-        else:
+        if not dist.is_initialized():
             return torch.sqrt(y.var(dim=0) + 1e-6).mean()
+        zc = torch.tensor(y.size(0)).cuda()
+        zs = y.sum(dim=0)
+        zss = (y**2).sum(dim=0)
+
+        dist.all_reduce(zc)
+        dist.all_reduce(zs)
+        dist.all_reduce(zss)
+
+        var = zss / (zc - 1) - (zs**2) / (zc * (zc - 1))
+        return torch.sqrt(var + 1e-6).mean()
 
     def extract_features(
         self, source, mode=None, padding_mask=None, mask=False, remove_extra_tokens=True
     ):
-        res = self.forward(
+        return self.forward(
             source,
             mode=mode,
             padding_mask=padding_mask,
@@ -791,7 +788,6 @@ class Data2VecMultiModel(BaseFairseqModel):
             features_only=True,
             remove_extra_tokens=remove_extra_tokens,
         )
-        return res
 
     def remove_pretraining_modules(self, modality=None, keep_decoder=False):
         self.ema = None

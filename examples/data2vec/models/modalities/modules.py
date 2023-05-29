@@ -115,9 +115,7 @@ class DecoderBase(nn.Module):
         ):
             return x
 
-        ret = x + residual
-
-        return ret
+        return x + residual
 
 
 class Decoder1d(DecoderBase):
@@ -157,10 +155,7 @@ class Decoder1d(DecoderBase):
             projs.append(nn.GELU())
             curr_dim = next_dim
         projs.append(nn.Linear(curr_dim, input_dim))
-        if len(projs) == 1:
-            self.proj = projs[0]
-        else:
-            self.proj = nn.Sequential(*projs)
+        self.proj = projs[0] if len(projs) == 1 else nn.Sequential(*projs)
 
     def forward(self, x, mask_info):
 
@@ -309,17 +304,14 @@ class AltBlock(nn.Module):
             r = x = self.mlp(self.norm2(x))
             t = x
             x = r + self.drop_path(self.post_mlp_dropout(x))
-            if not self.ffn_targets:
-                t = x
         else:
             x = x + self.drop_path(self.attn(x, padding_mask, alibi_bias))
             r = x = self.norm1(x)
             x = self.mlp(x)
             t = x
             x = self.norm2(r + self.drop_path(self.post_mlp_dropout(x)))
-            if not self.ffn_targets:
-                t = x
-
+        if not self.ffn_targets:
+            t = x
         return x, t
 
 
@@ -582,7 +574,7 @@ class EncDecTransformerDecoder(nn.Module):
 
     def forward(self, x, kv):
         x = self.input_proj(x)
-        for i, layer in enumerate(self.blocks):
+        for layer in self.blocks:
             x = layer(x, kv)
 
         x = self.proj(x)

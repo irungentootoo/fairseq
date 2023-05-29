@@ -92,7 +92,7 @@ class MultimodalPretrainingTask(FairseqTask):
         load_ds(self.image_task, Modality.IMAGE, self.cfg.image_ratio)
         load_ds(self.text_task, Modality.TEXT, self.cfg.text_ratio)
 
-        assert len(datasets) > 0
+        assert datasets
 
         self.datasets[split] = MultiModalityDataset(datasets)
 

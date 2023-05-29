@@ -329,9 +329,9 @@ class AudioClassificationModel(BaseFairseqModel):
                     # We dont load all weights together as that wont be memory efficient and may
                     # cause oom
                     new_dict = {
-                        k.replace(name + ".", ""): v
+                        k.replace(f"{name}.", ""): v
                         for (k, v) in state["model"].items()
-                        if name + "." in k
+                        if f"{name}." in k
                     }
                     assert isinstance(module, FullyShardedDataParallel)
                     with module.summon_full_params():
@@ -411,7 +411,7 @@ class AudioClassificationModel(BaseFairseqModel):
             raise Exception("Invalid fs {}".format(fs))
 
         if mode == "A_weighting":
-            if not hasattr(self, f"a_weight"):
+            if not hasattr(self, "a_weight"):
                 self.a_weight = {}
 
             if fs not in self.a_weight:
@@ -547,7 +547,7 @@ class AudioClassificationModel(BaseFairseqModel):
         if prediction_mode == "average_before":
             x = x.mean(dim=1)
 
-        if prediction_mode != "summary_mha" and prediction_mode != "summary_proj" and prediction_mode != "cls":
+        if prediction_mode not in ["summary_mha", "summary_proj", "cls"]:
             x = self.proj(x)
 
         logits = True
@@ -576,7 +576,7 @@ class AudioClassificationModel(BaseFairseqModel):
         elif prediction_mode == "proj_avg_proj":
             x = x.mean(dim=1)
             x = self.proj2(x)
-        elif prediction_mode == "summary_mha" or prediction_mode == "summary_proj":
+        elif prediction_mode in ["summary_mha", "summary_proj"]:
             x = self.d2v_model.summary(
                 x, padding_mask, proj=prediction_mode == "summary_proj"
             )

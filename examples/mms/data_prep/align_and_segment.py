@@ -102,11 +102,11 @@ def main(args):
     assert not os.path.exists(
         args.outdir
     ), f"Error: Output path exists already {args.outdir}"
-    
+
     transcripts = []
     with open(args.text_filepath) as f:
         transcripts = [line.strip() for line in f]
-    print("Read {} lines from {}".format(len(transcripts), args.text_filepath))
+    print(f"Read {len(transcripts)} lines from {args.text_filepath}")
 
     norm_transcripts = [text_normalize(line.strip(), args.lang) for line in transcripts]
     tokens = get_uroman_tokens(norm_transcripts, args.uroman_path, args.lang)
@@ -144,7 +144,7 @@ def main(args):
             tfm = sox.Transformer()
             tfm.trim(audio_start_sec , audio_end_sec)
             tfm.build_file(args.audio_filepath, output_file)
-            
+
             sample = {
                 "audio_start_sec": audio_start_sec,
                 "audio_filepath": str(output_file),

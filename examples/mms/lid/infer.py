@@ -12,16 +12,15 @@ import json
 
     
 def subset_manifest(infer_manifest, veri_pair):
-    with open(infer_manifest) as ff, open(veri_pair) as gg, tempfile.NamedTemporaryFile(
-        "w", delete=False
-    ) as ww:
+    with (open(infer_manifest) as ff, open(veri_pair) as gg, tempfile.NamedTemporaryFile(
+            "w", delete=False
+        ) as ww):
         fnames = ff.read().strip().split("\n")
         basedir = fnames[0]
         needed_fname = []
         for gi in gg.read().strip().split("\n"):
             _, x1, x2 = gi.split()
-            needed_fname.append(x1)
-            needed_fname.append(x2)
+            needed_fname.extend((x1, x2))
         needed_fname = set(needed_fname)
 
         ww.write(basedir + "\n")
@@ -37,9 +36,9 @@ def wrap_target_dataset(infer_manifest, dataset, task):
     label_path = infer_manifest.replace(".tsv", ".lang")
     text_compressor = TextCompressor(level=TextCompressionLevel.none)
     with open(label_path, "r") as f:
-        labels = [text_compressor.compress(l) for i,l in enumerate(f)]
+        labels = [text_compressor.compress(l) for l in f]
         assert len(labels) == len(dataset)
-        
+
     process_label = LabelEncoder(task.target_dictionary)
     dataset = AddTargetDataset(
         dataset,
@@ -63,7 +62,7 @@ def resample_data(source, padding_mask, n_sample, max_sample_len):
     if B == 1:
         return [source], [None]
     seq_len = (~padding_mask).sum(1)
-    for jj in range(n_sample):
+    for _ in range(n_sample):
         new_source = source.new_zeros(B, max_sample_len)
         new_padding_mask = padding_mask.new_zeros(B, max_sample_len)
         for ii in range(B):
@@ -127,7 +126,7 @@ if __name__ == "__main__":
     use_cuda = not args.cpu
 
     # Load model & task
-    print("| loading model from {}".format(args.path))
+    print(f"| loading model from {args.path}")
     arg_overrides = {
         "task": {
             "data": args.data

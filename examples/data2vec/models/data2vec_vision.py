@@ -148,7 +148,7 @@ class Data2VecVisionModel(BaseFairseqModel):
         super().set_num_updates(num_updates)
 
         if self.ema is None and self.final_proj is not None:
-            logger.info(f"making ema teacher")
+            logger.info("making ema teacher")
             self.make_ema_teacher()
         elif self.training and self.ema is not None:
             if self.cfg.ema_decay != self.cfg.ema_end_decay:
@@ -171,13 +171,13 @@ class Data2VecVisionModel(BaseFairseqModel):
         state = super().state_dict(destination, prefix, keep_vars)
 
         if self.ema is not None:
-            state[prefix + "_ema"] = self.ema.fp32_params
+            state[f"{prefix}_ema"] = self.ema.fp32_params
 
         return state
 
     def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs):
         if self.ema is not None:
-            k = prefix + "_ema"
+            k = f"{prefix}_ema"
             assert k in state_dict
             self.ema.restore(state_dict[k], True)
             del state_dict[k]
@@ -336,31 +336,29 @@ class Data2VecVisionModel(BaseFairseqModel):
         if self.loss_scale > 0:
             loss = loss * self.loss_scale
 
-        result = {
+        return {
             "losses": {"regression": loss.sum()},
             "sample_size": loss.numel(),
             "target_var": self.compute_var(y),
             "pred_var": self.compute_var(x),
             "ema_decay": self.ema.get_decay() * 1000,
         }
-        return result
 
     @staticmethod
     def compute_var(y):
         y = y.view(-1, y.size(-1))
-        if dist.is_initialized():
-            zc = torch.tensor(y.size(0)).cuda()
-            zs = y.sum(dim=0)
-            zss = (y ** 2).sum(dim=0)
-
-            dist.all_reduce(zc)
-            dist.all_reduce(zs)
-            dist.all_reduce(zss)
-
-            var = zss / (zc - 1) - (zs ** 2) / (zc * (zc - 1))
-            return torch.sqrt(var + 1e-6).mean()
-        else:
+        if not dist.is_initialized():
             return torch.sqrt(y.var(dim=0) + 1e-6).mean()
+        zc = torch.tensor(y.size(0)).cuda()
+        zs = y.sum(dim=0)
+        zss = (y ** 2).sum(dim=0)
+
+        dist.all_reduce(zc)
+        dist.all_reduce(zs)
+        dist.all_reduce(zss)
+
+        var = zss / (zc - 1) - (zs ** 2) / (zc * (zc - 1))
+        return torch.sqrt(var + 1e-6).mean()
 
     def remove_pretraining_modules(self, last_layer=None):
         self.final_proj = None
@@ -584,11 +582,10 @@ class DropPath(nn.Module):
         )  # work with diff dim tensors, not just 2D ConvNets
         random_tensor = keep_prob + torch.rand(shape, dtype=x.dtype, device=x.device)
         random_tensor.floor_()
-        output = x.div(keep_prob) * random_tensor
-        return output
+        return x.div(keep_prob) * random_tensor
 
     def extra_repr(self) -> str:
-        return "p={}".format(self.drop_prob)
+        return f"p={self.drop_prob}"
 
 
 class Block(nn.Module):
@@ -640,13 +637,12 @@ class Block(nn.Module):
         if self.gamma_1 is None:
             x = x + self.drop_path(self.attn(self.norm1(x), rel_pos_bias=rel_pos_bias))
             fc_feature = self.drop_path(self.mlp(self.norm2(x)))
-            x = x + fc_feature
         else:
             x = x + self.drop_path(
                 self.gamma_1 * self.attn(self.norm1(x), rel_pos_bias=rel_pos_bias)
             )
             fc_feature = self.drop_path(self.gamma_2 * self.mlp(self.norm2(x)))
-            x = x + fc_feature
+        x = x + fc_feature
         return x, fc_feature
 
 
@@ -709,7 +705,7 @@ class TransformerEncoder(nn.Module):
         rel_pos_bias = self.rel_pos_bias() if self.rel_pos_bias is not None else None
 
         z = []
-        for i, blk in enumerate(self.blocks):
+        for blk in self.blocks:
             x, fc_feature = blk(x, rel_pos_bias=rel_pos_bias)
             if layer_results == "end":
                 z.append(x)

@@ -28,8 +28,7 @@ def reorder_decode(hypos):
         idx = int(re.findall("\(None-(\d+)\)$", hypo)[0])
         hypo = re.sub("\(\S+\)$", "", hypo).strip()
         outputs.append((idx, hypo))
-    outputs = sorted(outputs)
-    return outputs
+    return sorted(outputs)
 
 def process(args):    
     with tempfile.TemporaryDirectory() as tmpdir:
