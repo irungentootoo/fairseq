@@ -91,7 +91,7 @@ def main(args, print_output):
 
     sources = []
     for root, _, files in os.walk(args.base):
-        if args.path_contains is not None and not args.path_contains in root:
+        if args.path_contains is not None and args.path_contains not in root:
             continue
         for f in files:
             if f.endswith(args.file_name):
@@ -144,9 +144,7 @@ def main(args, print_output):
                     def cmp(a, b):
                         a = float(a)
                         b = float(b)
-                        if args.best_biggest:
-                            return a > b
-                        return a < b
+                        return a > b if args.best_biggest else a < b
 
                     if cand_best is not None and not math.isnan(float(cand_best)) and (
                             curr_best is None or cmp(cand_best, curr_best)):
@@ -166,7 +164,7 @@ def main(args, print_output):
                         last_found.append(found[i])
                 found = list(reversed(last_found))
 
-            if len(found) == 0:
+            if not found:
                 if print_output and (args.last_files is not None or not args.skip_empty):
                     # print(root.split('/')[-1])
                     print(root[len(args.base):])
@@ -209,7 +207,7 @@ def main(args, print_output):
                 if not args.group_on and print_output:
                     print()
 
-            if len(avg) > 0:
+            if avg:
                 for k, (v, c) in avg.items():
                     print(f'{k}: {v/c}')
 
@@ -225,7 +223,7 @@ def main(args, print_output):
             k = args.group_on
             if k not in e:
                 m_keys = [x for x in e.keys() if x.startswith(k)]
-                if len(m_keys) == 0:
+                if not m_keys:
                     val = "False"
                 else:
                     assert len(m_keys) == 1
@@ -239,9 +237,9 @@ def main(args, print_output):
             if k in scrubbed_entry:
                 del scrubbed_entry[k]
             if args.remove_metric and args.remove_metric in scrubbed_entry:
-                val += '_' + scrubbed_entry[args.remove_metric]
+                val += f'_{scrubbed_entry[args.remove_metric]}'
                 del scrubbed_entry[args.remove_metric]
-            by_val.setdefault(tuple(scrubbed_entry.items()), dict())[val] = m
+            by_val.setdefault(tuple(scrubbed_entry.items()), {})[val] = m
         distinct_vals = set()
         for v in by_val.values():
             distinct_vals.update(v.keys())

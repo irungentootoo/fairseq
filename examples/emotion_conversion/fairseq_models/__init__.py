@@ -149,8 +149,8 @@ class MultilingualTransformerModelFromMbart(MultilingualTransformerModel):
 
     def load_state_dict(self, state_dict, strict=True, model_cfg=None):
         state_dict_subset = state_dict.copy()
-        lang_pairs = set([x.split(".")[1] for x in state_dict.keys()])
-        finetune_mode = not any("neutral" in lp for lp in lang_pairs)
+        lang_pairs = {x.split(".")[1] for x in state_dict.keys()}
+        finetune_mode = all("neutral" not in lp for lp in lang_pairs)
 
         if finetune_mode:
             # load a pre-trained mBART/BART model

@@ -256,9 +256,9 @@ class MaeImageClassificationModel(BaseFairseqModel):
             blocks = model.blocks
 
         num_layers = len(blocks) + 1
-        layer_scales = list(
+        layer_scales = [
             cfg.layer_decay ** (num_layers - i) for i in range(num_layers + 1)
-        )
+        ]
 
         if self.d2v_multi:
             for n, p in self.model.named_parameters():
@@ -282,13 +282,11 @@ class MaeImageClassificationModel(BaseFairseqModel):
 
                         if cfg.no_decay_blocks:
                             optim_override["optimizer"]["lr_scale"] = layer_scales[lid]
-                            p.optim_overrides = optim_override
                         else:
                             optim_override["optimizer"] = {
                                 "lr_scale": layer_scales[lid]
                             }
-                            p.optim_overrides = optim_override
-
+                        p.optim_overrides = optim_override
         else:
             for n, p in self.model.named_parameters():
                 optimizer_override_dict = {}
@@ -381,6 +379,6 @@ class MaeImageClassificationModel(BaseFairseqModel):
             x = self.model(imgs, predictions_only=True)
             if (
                 "no_cls" not in self.model.cfg or not self.model.cfg.no_cls
-            ) and not self.cfg.prediction_mode == PredictionMode.CLS_TOKEN:
+            ) and self.cfg.prediction_mode != PredictionMode.CLS_TOKEN:
                 x = x[:, 1:]
         return x

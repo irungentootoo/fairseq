@@ -18,8 +18,8 @@ def normalize_uroman(text):
 
 
 def get_uroman_tokens(norm_transcripts, uroman_root_dir, iso = None):
-    tf = tempfile.NamedTemporaryFile()  
-    tf2 = tempfile.NamedTemporaryFile()  
+    tf = tempfile.NamedTemporaryFile()
+    tf2 = tempfile.NamedTemporaryFile()
     with open(tf.name, "w") as f:
         for t in norm_transcripts:
             f.write(t + "\n")
@@ -28,7 +28,7 @@ def get_uroman_tokens(norm_transcripts, uroman_root_dir, iso = None):
     cmd = f"perl {uroman_root_dir}/uroman.pl"
     if iso in special_isos_uroman:
         cmd += f" -l {iso} "
-    cmd +=  f" < {tf.name} > {tf2.name}" 
+    cmd +=  f" < {tf.name} > {tf2.name}"
     os.system(cmd)
     outtexts = []
     with open(tf2.name) as f:
@@ -37,10 +37,7 @@ def get_uroman_tokens(norm_transcripts, uroman_root_dir, iso = None):
             line =  re.sub(r"\s+", " ", line).strip()
             outtexts.append(line)
     assert len(outtexts) == len(norm_transcripts)
-    uromans = []
-    for ot in outtexts:
-        uromans.append(normalize_uroman(ot))
-    return uromans
+    return [normalize_uroman(ot) for ot in outtexts]
 
 
 

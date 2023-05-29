@@ -102,10 +102,7 @@ class Data2VecTextClassificationModel(BaseFairseqModel):
             prev_inner_dim = self.classification_heads[name].dense.out_features
             if num_classes != prev_num_classes or inner_dim != prev_inner_dim:
                 logger.warning(
-                    're-registering head "{}" with num_classes {} (prev: {}) '
-                    "and inner_dim {} (prev: {})".format(
-                        name, num_classes, prev_num_classes, inner_dim, prev_inner_dim
-                    )
+                    f're-registering head "{name}" with num_classes {num_classes} (prev: {prev_num_classes}) and inner_dim {inner_dim} (prev: {prev_inner_dim})'
                 )
         embed_dim = self.cfg.pretrained_model_args.model.embed_dim
         self.classification_heads[name] = RobertaClassificationHead(

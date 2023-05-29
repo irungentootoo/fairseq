@@ -147,13 +147,7 @@ all_punct_quotes = (
     + right_single_quotation_mark
     + left_single_quotation_mark
 )
-mapping_quotes = (
-    "["
-    + high_single_quotes
-    + right_single_quotation_mark
-    + left_single_quotation_mark
-    + "]"
-)
+mapping_quotes = f"[{high_single_quotes}{right_single_quotation_mark}{left_single_quotation_mark}]"
 
 
 # Digits
@@ -175,11 +169,7 @@ nominal_digit_shapes = r"\u206f"
 with open(f"{os.path.dirname(__file__)}/punctuations.lst", "r") as punc_f:
     punc_list = punc_f.readlines()
 
-punct_pattern = r""    
-for punc in punc_list:
-    # the first character in the tab separated line is the punc to be removed
-    punct_pattern += re.escape(punc.split("\t")[0])
-
+punct_pattern = r"".join(re.escape(punc.split("\t")[0]) for punc in punc_list)
 shared_digits = (
     english_digits
     + bengali_digits

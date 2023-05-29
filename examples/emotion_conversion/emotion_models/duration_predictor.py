@@ -73,8 +73,7 @@ class Predictor(nn.Module):
                 token = int(token.item())
                 inflated_seq.extend([token for _ in range(n)])
             output.append(inflated_seq)
-        output = torch.LongTensor(output)
-        return output
+        return torch.LongTensor(output)
 
 
 class CnnPredictor(Predictor):

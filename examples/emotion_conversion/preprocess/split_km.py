@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("-sh", "--shuffle", action="store_true", help="path to km file")
     parser.add_argument("--seed", type=int, default=42, help="")
     args = parser.parse_args()
-    
+
     np.random.seed(args.seed)
     random.seed(args.seed)
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     if args.shuffle:
         km = shuffle(km)
-        print(f"shuffled")
+        print("shuffled")
 
     N = len(km)
     N_tt = int(N * args.test_percent)
@@ -41,9 +41,9 @@ if __name__ == "__main__":
     test_km = km[N_tr + N_cv:]
 
     dir = Path(args.destdir)
-    open(dir / f"train.km", "w").writelines(train_km)
-    open(dir / f"valid.km", "w").writelines(valid_km)
-    open(dir / f"test.km", "w").writelines(test_km)
+    open(dir / "train.km", "w").writelines(train_km)
+    open(dir / "valid.km", "w").writelines(valid_km)
+    open(dir / "test.km", "w").writelines(test_km)
     print(f"train: {len(train_km)}")
     print(f"valid: {len(valid_km)}")
     print(f"test: {len(test_km)}")

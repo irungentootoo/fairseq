@@ -138,26 +138,25 @@ class AltBlock(nn.Module):
                 proj_drop=drop,
                 window_size=window_size,
             )
+        elif alt_attention:
+            from .multi.modules import AltAttention as AltAttention2
+            self.attn = AltAttention2(
+                dim,
+                num_heads=num_heads,
+                qkv_bias=qkv_bias,
+                qk_scale=qk_scale,
+                attn_drop=attn_drop,
+                proj_drop=drop,
+            )
         else:
-            if alt_attention:
-                from .multi.modules import AltAttention as AltAttention2
-                self.attn = AltAttention2(
-                    dim,
-                    num_heads=num_heads,
-                    qkv_bias=qkv_bias,
-                    qk_scale=qk_scale,
-                    attn_drop=attn_drop,
-                    proj_drop=drop,
-                )
-            else:
-                self.attn = Attention(
-                    dim,
-                    num_heads=num_heads,
-                    qkv_bias=qkv_bias,
-                    qk_scale=qk_scale,
-                    attn_drop=attn_drop,
-                    proj_drop=drop,
-                )
+            self.attn = Attention(
+                dim,
+                num_heads=num_heads,
+                qkv_bias=qkv_bias,
+                qk_scale=qk_scale,
+                attn_drop=attn_drop,
+                proj_drop=drop,
+            )
         # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
@@ -181,9 +180,6 @@ class AltBlock(nn.Module):
                 x = x + self.drop_path(self.attn(self.norm1(x)))
             t = self.mlp(self.norm2(x))
             x = x + self.drop_path(t)
-            if not self.ffn_targets:
-                t = x
-            return x, t
         else:
             if self.use_rel_pos_bias:
                 x = x + self.drop_path(
@@ -195,9 +191,10 @@ class AltBlock(nn.Module):
             x = self.mlp(x)
             t = x
             x = self.norm2(r + self.drop_path(x))
-            if not self.ffn_targets:
-                t = x
-            return x, t
+
+        if not self.ffn_targets:
+            t = x
+        return x, t
 
 
 class AltAttention(nn.Module):
@@ -392,8 +389,7 @@ def get_2d_sincos_pos_embed_from_grid(embed_dim, grid):
     emb_h = get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[0])  # (H*W, D/2)
     emb_w = get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[1])  # (H*W, D/2)
 
-    emb = np.concatenate([emb_h, emb_w], axis=1)  # (H*W, D)
-    return emb
+    return np.concatenate([emb_h, emb_w], axis=1)
 
 
 def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
@@ -413,41 +409,41 @@ def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
     emb_sin = np.sin(out)  # (M, D/2)
     emb_cos = np.cos(out)  # (M, D/2)
 
-    emb = np.concatenate([emb_sin, emb_cos], axis=1)  # (M, D)
-    return emb
+    return np.concatenate([emb_sin, emb_cos], axis=1)
 
 
 def interpolate_pos_embed(model, checkpoint_model):
-    if "pos_embed" in checkpoint_model:
-        pos_embed_checkpoint = checkpoint_model["pos_embed"]
-        embedding_size = pos_embed_checkpoint.shape[-1]
-        num_patches = model.patch_embed.num_patches
-        num_extra_tokens = model.pos_embed.shape[-2] - num_patches
-        # height (== width) for the checkpoint position embedding
-        orig_size = int((pos_embed_checkpoint.shape[-2] - num_extra_tokens) ** 0.5)
-        # height (== width) for the new position embedding
-        new_size = int(num_patches ** 0.5)
+    if "pos_embed" not in checkpoint_model:
+        return
+    pos_embed_checkpoint = checkpoint_model["pos_embed"]
+    num_patches = model.patch_embed.num_patches
+    num_extra_tokens = model.pos_embed.shape[-2] - num_patches
+    # height (== width) for the checkpoint position embedding
+    orig_size = int((pos_embed_checkpoint.shape[-2] - num_extra_tokens) ** 0.5)
+    # height (== width) for the new position embedding
+    new_size = int(num_patches ** 0.5)
         # class_token and dist_token are kept unchanged
-        if orig_size != new_size:
-            print(
-                "Position interpolate from %dx%d to %dx%d"
-                % (orig_size, orig_size, new_size, new_size)
-            )
-            extra_tokens = pos_embed_checkpoint[:, :num_extra_tokens]
-            # only the position tokens are interpolated
-            pos_tokens = pos_embed_checkpoint[:, num_extra_tokens:]
-            pos_tokens = pos_tokens.reshape(
-                -1, orig_size, orig_size, embedding_size
-            ).permute(0, 3, 1, 2)
-            pos_tokens = torch.nn.functional.interpolate(
-                pos_tokens,
-                size=(new_size, new_size),
-                mode="bicubic",
-                align_corners=False,
-            )
-            pos_tokens = pos_tokens.permute(0, 2, 3, 1).flatten(1, 2)
-            new_pos_embed = torch.cat((extra_tokens, pos_tokens), dim=1)
-            checkpoint_model["pos_embed"] = new_pos_embed
+    if orig_size != new_size:
+        print(
+            "Position interpolate from %dx%d to %dx%d"
+            % (orig_size, orig_size, new_size, new_size)
+        )
+        extra_tokens = pos_embed_checkpoint[:, :num_extra_tokens]
+        # only the position tokens are interpolated
+        pos_tokens = pos_embed_checkpoint[:, num_extra_tokens:]
+        embedding_size = pos_embed_checkpoint.shape[-1]
+        pos_tokens = pos_tokens.reshape(
+            -1, orig_size, orig_size, embedding_size
+        ).permute(0, 3, 1, 2)
+        pos_tokens = torch.nn.functional.interpolate(
+            pos_tokens,
+            size=(new_size, new_size),
+            mode="bicubic",
+            align_corners=False,
+        )
+        pos_tokens = pos_tokens.permute(0, 2, 3, 1).flatten(1, 2)
+        new_pos_embed = torch.cat((extra_tokens, pos_tokens), dim=1)
+        checkpoint_model["pos_embed"] = new_pos_embed
 
 
 @register_model("mae", dataclass=MaeConfig)
@@ -648,7 +644,7 @@ class MaeModel(BaseFairseqModel):
             torch.nn.init.xavier_uniform_(m.weight)
             if isinstance(m, nn.Linear) and m.bias is not None:
                 nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.LayerNorm) or isinstance(m, FusedLayerNorm):
+        elif isinstance(m, (nn.LayerNorm, FusedLayerNorm)):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
 
@@ -677,8 +673,7 @@ class MaeModel(BaseFairseqModel):
 
         x = x.reshape(shape=(x.shape[0], h, w, p, p, 3))
         x = torch.einsum("nhwpqc->nchpwq", x)
-        imgs = x.reshape(shape=(x.shape[0], 3, h * p, h * p))
-        return imgs
+        return x.reshape(shape=(x.shape[0], 3, h * p, h * p))
 
     def random_masking(self, x, mask_ratio):
         """
@@ -812,11 +807,10 @@ class MaeModel(BaseFairseqModel):
         pred = self.forward_decoder(latent, ids_restore)  # [N, L, p*p*3]
         loss, sample_size = self.forward_loss(imgs, pred, mask)
 
-        result = {
+        return {
             "losses": {"regression": loss},
             "sample_size": sample_size,
         }
-        return result
 
     def remove_pretraining_modules(self):
         self.decoder_embed = None

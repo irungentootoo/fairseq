@@ -80,10 +80,7 @@ class MaeImagePretrainingTask(FairseqTask):
         cfg = task_cfg or self.cfg
 
         compute_mask = cfg.precompute_mask_config is not None
-        mask_args = {}
-        if compute_mask:
-            mask_args = cfg.precompute_mask_config
-
+        mask_args = cfg.precompute_mask_config if compute_mask else {}
         self.datasets[split] = MaeImageDataset(
             root=data_path if cfg.multi_data is None else cfg.multi_data,
             split=split,

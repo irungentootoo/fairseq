@@ -26,8 +26,7 @@ def load_bpe(enc_path):
 def detokenize(tokens, src_dict, idx2bpe):
     raw_inds = map(int, src_dict.string(tokens).split())
     raw_chrs = "".join([idx2bpe[raw_ind] for raw_ind in raw_inds])
-    raw_chrs = raw_chrs.replace("\u0120", " ")
-    return raw_chrs
+    return raw_chrs.replace("\u0120", " ")
 
 def _main(src_root, src_dict_path, src_bpe_path, src_splits, tgt_root, tgt_splits):
     src_dict = load_dictionary(src_dict_path)

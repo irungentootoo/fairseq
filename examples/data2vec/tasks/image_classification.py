@@ -70,27 +70,28 @@ class ImageClassificationTask(ImagePretrainingTask):
                 mean=cfg.normalization_mean,
                 std=cfg.normalization_std,
             )
-            if not cfg.input_size > 32:
+            if cfg.input_size <= 32:
                 transform.transforms[0] = transforms.RandomCrop(
                     cfg.input_size, padding=4
                 )
         else:
             t = []
             if cfg.input_size > 32:
-                crop_pct = 1
-                if cfg.input_size < 384:
-                    crop_pct = 224 / 256
+                crop_pct = 224 / 256 if cfg.input_size < 384 else 1
                 size = int(cfg.input_size / crop_pct)
-                t.append(
-                    transforms.Resize(
-                        size, interpolation=3
-                    ),  # to maintain same ratio w.r.t. 224 images
+                t.extend(
+                    (
+                        transforms.Resize(size, interpolation=3),
+                        transforms.CenterCrop(cfg.input_size),
+                    )
                 )
-                t.append(transforms.CenterCrop(cfg.input_size))
-
-            t.append(transforms.ToTensor())
-            t.append(
-                transforms.Normalize(cfg.normalization_mean, cfg.normalization_std)
+            t.extend(
+                (
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        cfg.normalization_mean, cfg.normalization_std
+                    ),
+                )
             )
             transform = transforms.Compose(t)
             logger.info(transform)

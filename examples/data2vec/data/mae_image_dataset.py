@@ -91,17 +91,13 @@ class RandomResizedCropAndInterpolationWithTwoPic:
         interpolation="bilinear",
         second_interpolation="lanczos",
     ):
-        if isinstance(size, tuple):
-            self.size = size
-        else:
-            self.size = (size, size)
-        if second_size is not None:
-            if isinstance(second_size, tuple):
-                self.second_size = second_size
-            else:
-                self.second_size = (second_size, second_size)
-        else:
+        self.size = size if isinstance(size, tuple) else (size, size)
+        if second_size is None:
             self.second_size = None
+        elif isinstance(second_size, tuple):
+            self.second_size = second_size
+        else:
+            self.second_size = (second_size, second_size)
         if (scale[0] > scale[1]) or (ratio[0] > ratio[1]):
             logger.warning("range should be of kind (min, max)")
 
@@ -148,7 +144,7 @@ class RandomResizedCropAndInterpolationWithTwoPic:
         """
         area = img.size[0] * img.size[1]
 
-        for attempt in range(10):
+        for _ in range(10):
             target_area = random.uniform(*scale) * area
             log_ratio = (math.log(ratio[0]), math.log(ratio[1]))
             aspect_ratio = math.exp(random.uniform(*log_ratio))
@@ -241,10 +237,7 @@ class MaeImageDataset(FairseqDataset):
             self.transform_target = transforms.ColorJitter(0.4, 0.4, 0.4)
 
         if no_transform:
-            if input_size <= 224:
-                crop_pct = 224 / 256
-            else:
-                crop_pct = 1.0
+            crop_pct = 224 / 256 if input_size <= 224 else 1.0
             size = int(input_size / crop_pct)
 
             self.transform_train = transforms.Compose(

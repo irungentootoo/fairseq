@@ -135,12 +135,16 @@ def main():
     if args.dedup: suffix += "_dedup"
     translation_suffix = ""
     if args.autoencode: translation_suffix += "_autoencode"
-    denoising_suffix = ""
-    denoising_suffix += "_zeroshot" if args.zero_shot else "_nonzeroshot"
-
-    translation_dir = Path(args.output_path) / ("emov_multilingual_translation" + suffix + translation_suffix)
+    denoising_suffix = "" + ("_zeroshot" if args.zero_shot else "_nonzeroshot")
+    translation_dir = (
+        Path(args.output_path)
+        / f"emov_multilingual_translation{suffix}{translation_suffix}"
+    )
     os.makedirs(translation_dir, exist_ok=True)
-    denoising_dir = Path(args.output_path) / ("emov_multilingual_denoising" + suffix + denoising_suffix)
+    denoising_dir = (
+        Path(args.output_path)
+        / f"emov_multilingual_denoising{suffix}{denoising_suffix}"
+    )
     os.makedirs(denoising_dir, exist_ok=True)
 
     denoising_data = [p.name for p in (args.data / "denoising").glob("*") if "emov" not in p.name]
@@ -179,7 +183,7 @@ def main():
 
         # generate data for the multilingual translation task
         for SRC_EMOTION in EMOTIONS:
-            TRG_EMOTIONS = EMOTIONS if args.autoencode else set(EMOTIONS) - set([SRC_EMOTION])
+            TRG_EMOTIONS = EMOTIONS if args.autoencode else set(EMOTIONS) - {SRC_EMOTION}
             for TRG_EMOTION in TRG_EMOTIONS:
                 # when translating back to the same emotion - we dont want these emotion
                 # pairs to be part of the validation/test sets (because its not really emotion conversino)
@@ -204,7 +208,7 @@ def main():
 
                 # create a tsv and km files with all the combinations for translation
                 src_tsv, trg_tsv, src_km, trg_km = [], [], [], []
-                for speaker, utt_ids in spkr2utts.items():
+                for utt_ids in spkr2utts.values():
                     for utt_id, indices in utt_ids.items():
                         # generate all pairs
                         pairs = [(x,y) for x in indices for y in indices]
@@ -228,7 +232,7 @@ def main():
                 assert len(src_tsv) == len(trg_tsv) == len(src_km) == len(trg_km)
                 print(f"{len(src_tsv)} pairs")
 
-                if len(src_tsv) == 0:
+                if not src_tsv:
                     raise Exception("ERROR: generated 0 pairs!")
 
                 if args.dry_run: continue
@@ -240,7 +244,7 @@ def main():
                 open(translation_dir / f"{SRC_EMOTION}-{TRG_EMOTION}" / f"{split}.{SRC_EMOTION}", "w").writelines(src_km)
                 open(translation_dir / f"{SRC_EMOTION}-{TRG_EMOTION}" / f"{split}.{TRG_EMOTION}", "w").writelines(trg_km)
 
-        
+
     # fairseq-preprocess the denoising data
     for EMOTION in EMOTIONS + denoising_data:
         denoising_preprocess(denoising_dir, EMOTION, args.dict)
@@ -249,7 +253,7 @@ def main():
     # fairseq-preprocess the translation data
     os.makedirs(translation_dir / "tokenized", exist_ok=True)
     for SRC_EMOTION in EMOTIONS:
-        TRG_EMOTIONS = EMOTIONS if args.autoencode else set(EMOTIONS) - set([SRC_EMOTION])
+        TRG_EMOTIONS = EMOTIONS if args.autoencode else set(EMOTIONS) - {SRC_EMOTION}
         for TRG_EMOTION in TRG_EMOTIONS:
             translation_preprocess(translation_dir / f"{SRC_EMOTION}-{TRG_EMOTION}", SRC_EMOTION, TRG_EMOTION, args.dict)#, only_train=SRC_EMOTION==TRG_EMOTION)
     os.system(f"cp -rf {translation_dir}/**/tokenized/* {translation_dir}/tokenized")

@@ -10,7 +10,7 @@ from build_translation_manifests import get_utt_id
 
 
 def train_val_test_split(tsv_lines, km_lines, valid_percent, test_percent, seed=42):
-    utt_ids = list(sorted(set([get_utt_id(x) for x in tsv_lines])))
+    utt_ids = list(sorted({get_utt_id(x) for x in tsv_lines}))
     utt_ids, valid_utt_ids, _, _ = train_test_split(utt_ids, utt_ids, test_size=valid_percent, shuffle=True, random_state=seed)
     train_utt_ids, test_utt_ids, _, _ = train_test_split(utt_ids, utt_ids, test_size=test_percent, shuffle=True, random_state=seed)
 
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     parser.add_argument("--test-percent", type=float, default=0.05, help="percent to allocate to test set")
     parser.add_argument("--seed", type=int, default=42, help="")
     args = parser.parse_args()
-    
+
     np.random.seed(args.seed)
     random.seed(args.seed)
 
@@ -61,10 +61,10 @@ if __name__ == "__main__":
     assert len(train_tsv) == len(train_km) and len(valid_tsv) == len(valid_km) and len(test_tsv) == len(test_km)
 
     dir = Path(args.destdir)
-    open(dir / f"train.tsv", "w").writelines([root] + train_tsv)
-    open(dir / f"valid.tsv", "w").writelines([root] + valid_tsv)
-    open(dir / f"test.tsv", "w").writelines([root] + test_tsv)
-    open(dir / f"train.km", "w").writelines(train_km)
-    open(dir / f"valid.km", "w").writelines(valid_km)
-    open(dir / f"test.km", "w").writelines(test_km)
+    open(dir / "train.tsv", "w").writelines([root] + train_tsv)
+    open(dir / "valid.tsv", "w").writelines([root] + valid_tsv)
+    open(dir / "test.tsv", "w").writelines([root] + test_tsv)
+    open(dir / "train.km", "w").writelines(train_km)
+    open(dir / "valid.km", "w").writelines(valid_km)
+    open(dir / "test.km", "w").writelines(test_km)
     print("done")

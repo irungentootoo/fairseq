@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("-sh", "--shuffle", action="store_true", help="path to km file")
     parser.add_argument("--seed", type=int, default=42, help="")
     args = parser.parse_args()
-    
+
     np.random.seed(args.seed)
     random.seed(args.seed)
 
@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     if args.shuffle:
         tsv, km = shuffle(tsv, km)
-        print(f"shuffled")
+        print("shuffled")
 
     N = len(tsv)
     N_tt = int(N * args.test_percent)
@@ -53,12 +53,12 @@ if __name__ == "__main__":
     assert len(train_tsv) == len(train_km) and len(valid_tsv) == len(valid_km) and len(test_tsv) == len(test_km)
 
     dir = Path(args.destdir)
-    open(dir / f"train.tsv", "w").writelines([root] + train_tsv)
-    open(dir / f"valid.tsv", "w").writelines([root] + valid_tsv)
-    open(dir / f"test.tsv", "w").writelines([root] + test_tsv)
-    open(dir / f"train.km", "w").writelines(train_km)
-    open(dir / f"valid.km", "w").writelines(valid_km)
-    open(dir / f"test.km", "w").writelines(test_km)
+    open(dir / "train.tsv", "w").writelines([root] + train_tsv)
+    open(dir / "valid.tsv", "w").writelines([root] + valid_tsv)
+    open(dir / "test.tsv", "w").writelines([root] + test_tsv)
+    open(dir / "train.km", "w").writelines(train_km)
+    open(dir / "valid.km", "w").writelines(valid_km)
+    open(dir / "test.km", "w").writelines(test_km)
     print(f"train: {len(train_km)}")
     print(f"valid: {len(valid_km)}")
     print(f"test: {len(test_km)}")

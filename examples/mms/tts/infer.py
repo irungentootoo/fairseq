@@ -27,7 +27,7 @@ class TextMapper(object):
         self.symbols = [x.replace("\n", "") for x in open(vocab_file, encoding="utf-8").readlines()]
         self.SPACE_ID = self.symbols.index(" ")
         self._symbol_to_id = {s: i for i, s in enumerate(self.symbols)}
-        self._id_to_symbol = {i: s for i, s in enumerate(self.symbols)}
+        self._id_to_symbol = dict(enumerate(self.symbols))
 
     def text_to_sequence(self, text, cleaner_names):
         '''Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
@@ -46,11 +46,10 @@ class TextMapper(object):
 
     def uromanize(self, text, uroman_pl):
         iso = "xxx"
-        with tempfile.NamedTemporaryFile() as tf, \
-             tempfile.NamedTemporaryFile() as tf2:
+        with (tempfile.NamedTemporaryFile() as tf, tempfile.NamedTemporaryFile() as tf2):
             with open(tf.name, "w") as f:
                 f.write("\n".join([text]))
-            cmd = f"perl " + uroman_pl
+            cmd = f"perl {uroman_pl}"
             cmd += f" -l {iso} "
             cmd +=  f" < {tf.name} > {tf2.name}"
             os.system(cmd)
@@ -118,7 +117,7 @@ def generate():
                 subprocess.check_output(cmd, shell=True)
                 args.uroman_dir = tmp_dir
             uroman_pl = os.path.join(args.uroman_dir, "bin", "uroman.pl")
-            print(f"uromanize")
+            print("uromanize")
             txt = text_mapper.uromanize(txt, uroman_pl)
             print(f"uroman text: {txt}")
     txt = txt.lower()

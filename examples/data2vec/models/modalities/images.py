@@ -187,8 +187,7 @@ class ImageEncoder(ModalitySpecificEncoder):
 
         x = x.reshape(shape=(x.shape[0], h, w, p, p, 3))
         x = torch.einsum("nhwpqc->nchpwq", x)
-        imgs = x.reshape(shape=(x.shape[0], 3, h * p, h * p))
-        return imgs
+        return x.reshape(shape=(x.shape[0], 3, h * p, h * p))
 
     def compute_mask(
         self,
@@ -210,11 +209,7 @@ class ImageEncoder(ModalitySpecificEncoder):
         else:
             from fairseq.data.data_utils import compute_block_mask_2d
 
-            if shape is not None:
-                B, L, D = shape
-            else:
-                B, L, D = x.shape
-
+            B, L, D = shape if shape is not None else x.shape
             mask = compute_block_mask_2d(
                 shape=(B, L),
                 mask_prob=self.modality_cfg.mask_prob,

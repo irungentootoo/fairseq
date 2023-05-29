@@ -52,8 +52,7 @@ class ImageDataset(FairseqDataset, VisionDataset):
                     if fname_ext[-1].lower() not in extensions:
                         continue
 
-                    path = os.path.join(root, fname)
-                    yield path
+                    yield os.path.join(root, fname)
 
         logger.info(f"finding images in {root}")
         if self.classes is not None:
@@ -64,7 +63,7 @@ class ImageDataset(FairseqDataset, VisionDataset):
                     self.files.append(f)
                     self.labels.append(i)
         else:
-            self.files = [f for f in walk_path(root)]
+            self.files = list(walk_path(root))
 
         logger.info(f"loaded {len(self.files)} examples")
 

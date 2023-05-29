@@ -70,10 +70,10 @@ class LocalJob(BaseJob):
                     if key in ["fp16", "reset_optimizer", "reset_dataloader", "reset_meters"]:  # a list of binary flag.
                         param = ["--" + key.replace("_", "-")]
                     else:
-                        if key == "lr":
+                        if key == "adam_betas":
+                            value = f"'{str(config.fairseq[field][key])}'"
+                        elif key == "lr":
                             value = str(config.fairseq[field][key][0])
-                        elif key == "adam_betas":
-                            value = "'"+str(config.fairseq[field][key])+"'"
                         else:
                             value = str(config.fairseq[field][key])
                         param = [
@@ -106,9 +106,9 @@ class JobStatus(object):
 
     def result(self):
         if self.done():
-            return "{} is done.".format(self.job_id)
+            return f"{self.job_id} is done."
         else:
-            return "{} is running.".format(self.job_id)
+            return f"{self.job_id} is running."
 
     def stderr(self):
         return self.result()

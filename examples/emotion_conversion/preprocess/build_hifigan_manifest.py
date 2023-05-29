@@ -19,7 +19,7 @@ def main():
     for tsv_line, km_line in zip(tsv_lines, km_lines):
         tsv_line, km_line = tsv_line.strip(), km_line.strip()
         wav_basename, wav_num_frames = tsv_line.split("\t")
-        wav_path = wav_root + "/" + wav_basename
+        wav_path = f"{wav_root}/{wav_basename}"
         wav_info = torchaudio.info(wav_path)
         assert int(wav_num_frames) == wav_info.num_frames, "tsv duration and actual duration don't match!"
         wav_duration = wav_info.num_frames / wav_info.sample_rate
